@@ -10,6 +10,8 @@ public class WeatherResource {
     public String publishingOffice;
     public String reportDatetime;
     public List<WeatherTimeSeries> timeSeries;
+    public Object tempAverage;
+    public Object precipAverage;
 
     @Data
     public static class WeatherTimeSeries {
@@ -19,8 +21,21 @@ public class WeatherResource {
         @Data
         public static class AreaInfo {
             Area area;
+            Object temps;
             List<String> weatherCodes;
             List<String> weathers;
+            List<String> winds;
+            List<String> waves;
+            List<String> pops;
+            List<String> reliabilities;
+
+            // temperature
+            List<String> tempsMin;
+            List<String> tempsMinUpper;
+            List<String> tempsMinLower;
+            List<String> tempsMax;
+            List<String> tempsMaxUpper;
+            List<String> tempsMaxLower;
         }
 
         @Data
