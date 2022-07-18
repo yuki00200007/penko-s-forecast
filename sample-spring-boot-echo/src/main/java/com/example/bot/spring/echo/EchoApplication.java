@@ -33,11 +33,16 @@ import com.linecorp.bot.spring.boot.annotation.EventMapping;
 import com.linecorp.bot.spring.boot.annotation.LineMessageHandler;
 import org.springframework.util.CollectionUtils;
 
+import javax.annotation.Nullable;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -59,7 +64,7 @@ public class EchoApplication {
         final String originalMessageText = event.getMessage().getText();
 
         // 天気に関する問い合わせなのか
-        final String[] weatherKeywordArr = {"weather", "天気", "暑い", "寒い", "雨", "晴"};
+        final String[] weatherKeywordArr = {"weather", "てんき", "テンキ", "天気", "暑い", "寒い", "雨", "晴"};
         final List<String> weatherKeywords = Arrays.asList(weatherKeywordArr);
         if (weatherKeywords.stream().anyMatch(originalMessageText::contains)) {
             // access to api
@@ -83,7 +88,8 @@ public class EchoApplication {
                 con.disconnect();
 
                 List<WeatherInfo> tokyoWeather = findTokyo(result.get(0));
-                String weatherMessage = tokyoWeather.stream().map(tw -> String.format("%s は %s", tw.getTimeDef(), tw.getWeather())).collect(Collectors.joining(" ¥n "));
+                if (tokyoWeather == null) return new TextMessage("取得に失敗したTT");
+                String weatherMessage = tokyoWeather.stream().map(tw -> String.format("%sは %s", tw.getTimeDef(), tw.getWeather())).collect(Collectors.joining(" ¥n"));
                 return new TextMessage(weatherMessage);
             } catch (IOException e) {
                 e.printStackTrace();
@@ -106,16 +112,31 @@ public class EchoApplication {
             final List<String> weathers = areaInfo.getWeathers();
             for (int i = 0; i < timeDefines.size(); i++) {
                 final String timeDef = timeDefines.get(i);
+                // "2022-07-18T11:00:00+09:00"
+                final ZonedDateTime dt = ZonedDateTime.parse(timeDef);
+                final ZonedDateTime now = ZonedDateTime.now(ZoneId.of("Asia/Tokyo"));
+                final String day = getDay(dt, now);
+                if (day == null) return null;
                 final String weather = weathers.get(i);
 
                 WeatherInfo wi = new WeatherInfo();
-                wi.setTimeDef(timeDef);
+                wi.setTimeDef(day);
                 wi.setWeather(weather);
                 wis.add(wi);
             }
             break;
         }
         return wis;
+    }
+
+    @Nullable
+    private String getDay(ZonedDateTime dt, ZonedDateTime now) {
+        int target = dt.getDayOfMonth();
+        int today = now.getDayOfMonth();
+        if (today == target) return "今日これから";
+        if (today == target - 1) return "明日";
+        if (today == target - 2) return "明後日";
+        return null;
     }
 
     @EventMapping
