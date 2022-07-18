@@ -7,13 +7,13 @@ import java.util.List;
 
 @Data
 public class WeatherResource {
-    String publishingOffice;
-    LocalDateTime reportDatetime;
-    List<WeatherTimeSeries> timeSeries;
+    public String publishingOffice;
+    public String reportDatetime;
+    public List<WeatherTimeSeries> timeSeries;
 
     @Data
     public static class WeatherTimeSeries {
-        List<LocalDateTime> timeDefines;
+        List<String> timeDefines;
         List<AreaInfo> areas;
 
         @Data
