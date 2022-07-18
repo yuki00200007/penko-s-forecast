@@ -39,9 +39,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -89,7 +87,7 @@ public class EchoApplication {
 
                 List<WeatherInfo> tokyoWeather = findTokyo(result.get(0));
                 if (tokyoWeather == null) return new TextMessage("取得に失敗したTT");
-                String weatherMessage = tokyoWeather.stream().map(tw -> String.format("%sは %s", tw.getTimeDef(), tw.getWeather())).collect(Collectors.joining(" ¥n"));
+                String weatherMessage = tokyoWeather.stream().map(tw -> String.format("%sは%s", tw.getTimeDef(), tw.getWeather())).collect(Collectors.joining("\n"));
                 return new TextMessage(weatherMessage);
             } catch (IOException e) {
                 e.printStackTrace();
@@ -118,15 +116,21 @@ public class EchoApplication {
                 final String day = getDay(dt, now);
                 if (day == null) return null;
                 final String weather = weathers.get(i);
+                final String weatherWithEmoji = addEmoji(weather);
 
                 WeatherInfo wi = new WeatherInfo();
                 wi.setTimeDef(day);
-                wi.setWeather(weather);
+                wi.setWeather(weatherWithEmoji);
                 wis.add(wi);
             }
             break;
         }
         return wis;
+    }
+
+    private String addEmoji(String weather) {
+        final String withoutSpace = weather.replace("所により　", "所により").replace("雨　", "雨");
+        return withoutSpace.replace("雷", "雷\uD83C\uDF29️").replace("くもり", "くもり☁").replace("雨", "雨\uD83C\uDF27️").replace("晴れ", "晴れ☀");
     }
 
     @Nullable
