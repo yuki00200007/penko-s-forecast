@@ -19,8 +19,6 @@ package com.example.bot.spring.echo;
 import com.example.bot.spring.echo.WeatherResource.WeatherTimeSeries.AreaInfo;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.linecorp.bot.client.exception.BadRequestException;
-import com.linecorp.bot.model.error.ErrorResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
@@ -34,20 +32,17 @@ import com.linecorp.bot.model.message.TextMessage;
 import com.linecorp.bot.spring.boot.annotation.EventMapping;
 import com.linecorp.bot.spring.boot.annotation.LineMessageHandler;
 import org.springframework.util.CollectionUtils;
-import org.springframework.web.client.RestTemplate;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
-
-import static java.util.Collections.emptyList;
 
 @SpringBootApplication
 @LineMessageHandler
@@ -68,7 +63,6 @@ public class EchoApplication {
         final List<String> weatherKeywords = Arrays.asList(weatherKeywordArr);
         if (weatherKeywords.stream().anyMatch(originalMessageText::contains)) {
             // access to api
-            RestTemplate restTemplate = new RestTemplate();
             String urlString = "https://www.jma.go.jp/bosai/forecast/data/forecast/130000.json";
             try {
                 URL url = new URL(urlString);
@@ -77,7 +71,7 @@ public class EchoApplication {
 
                 String response = "";
                 BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
-                String tmp = "";
+                String tmp;
                 while ((tmp = in.readLine()) != null) {
                     response += tmp;
                 }
@@ -88,28 +82,40 @@ public class EchoApplication {
 
                 con.disconnect();
 
-                String tokyoWeather = findTokyo(result.get(0));
-                return new TextMessage(tokyoWeather);
+                List<WeatherInfo> tokyoWeather = findTokyo(result.get(0));
+                String weatherMessage = tokyoWeather.stream().map(tw -> String.format("%s は %s", tw.getTimeDef(), tw.getWeather())).collect(Collectors.joining(" ¥n "));
+                return new TextMessage(weatherMessage);
             } catch (IOException e) {
                 e.printStackTrace();
                 return new TextMessage("取得に失敗したTT");
             }
         }
-        return new TextMessage(originalMessageText);
+        return new TextMessage("天気のことしかわからないTT");
     }
 
-    private String findTokyo(WeatherResource result) {
-        String w = "";
+    private List<WeatherInfo> findTokyo(WeatherResource result) {
+        final List<WeatherInfo> wis = new ArrayList<>();
+
         for (WeatherResource.WeatherTimeSeries ts : result.getTimeSeries()) {
             final List<AreaInfo> areaInfos = ts.getAreas().stream().filter(area -> Objects.equals(area.getArea().getCode(), "130010")).collect(Collectors.toList());
             if (CollectionUtils.isEmpty(areaInfos)) {
                 continue;
             }
+            final List<String> timeDefines = ts.getTimeDefines();
             final AreaInfo areaInfo = areaInfos.get(0);
-            w = String.join("¥n", areaInfo.getWeathers());
+            final List<String> weathers = areaInfo.getWeathers();
+            for (int i = 0; i < timeDefines.size(); i++) {
+                final String timeDef = timeDefines.get(i);
+                final String weather = weathers.get(i);
+
+                WeatherInfo wi = new WeatherInfo();
+                wi.setTimeDef(timeDef);
+                wi.setWeather(weather);
+                wis.add(wi);
+            }
             break;
         }
-        return w;
+        return wis;
     }
 
     @EventMapping

@@ -4,5 +4,6 @@ import lombok.Data;
 
 @Data
 public class WeatherInfo {
-    String detail;
+    String timeDef;
+    String weather;
 }
