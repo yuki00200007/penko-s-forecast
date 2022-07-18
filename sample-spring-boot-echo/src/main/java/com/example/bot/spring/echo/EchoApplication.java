@@ -16,6 +16,7 @@
 
 package com.example.bot.spring.echo;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -64,9 +65,17 @@ public class EchoApplication {
                 HttpURLConnection con = (HttpURLConnection) url.openConnection();
                 con.connect(); // URL接続
                 BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
-                ObjectMapper mapper = new ObjectMapper();
+                StringBuilder response = new StringBuilder();
+                String tmp;
 
-                List<WeatherResource> result = mapper.readValue(in, List.class);
+                while ((tmp = in.readLine()) != null) {
+                    response.append(tmp);
+                }
+
+                ObjectMapper mapper = new ObjectMapper();
+                String json = mapper.writeValueAsString(response);
+                List<WeatherResource> result = mapper.readValue(json, new TypeReference<List<WeatherResource>>() {
+                });
                 in.close();
                 con.disconnect();
 
